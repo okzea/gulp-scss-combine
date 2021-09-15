@@ -17,7 +17,7 @@ var parsedFiles = [];
  * @param  {Array} parsedFiles  Yet parsed files to reduce size of the result.
  * @return {string}             Partially combined scss.
  */
-function getReplace(capture, baseDir, paths, parsedFiles) {
+function getReplace(capture, baseDir, paths, parsedFiles, options) {
     var parse   = path.parse(path.resolve(baseDir, capture + '.scss'));
     var file    = parse.dir + '/' + parse.name;
 
@@ -44,7 +44,7 @@ function getReplace(capture, baseDir, paths, parsedFiles) {
         return '@import "' + capture + '";';
     }
 
-    if (parsedFiles.indexOf(file) >= 0) {
+    if (options.allowDuplicates !== true && parsedFiles.indexOf(file) >= 0) {
         // File was already parsed, leave the import commented.
 		console.error('File "' + capture + '" already parsed');
         return '// @import "' + capture + '";';
@@ -54,7 +54,7 @@ function getReplace(capture, baseDir, paths, parsedFiles) {
     var text = fs.readFileSync(file);
 
     // Recursive call.
-    return scssCombine(text, parse.dir, paths, parsedFiles);
+    return scssCombine(text, parse.dir, paths, parsedFiles, options);
 }
 
 /**
@@ -66,7 +66,7 @@ function getReplace(capture, baseDir, paths, parsedFiles) {
  * @param  {Array} parsedFiles  Yet parsed files to reduce size of the result.
  * @return {string}             Scss string with the replaces done.
  */
-function scssCombine(content, baseDir, paths, parsedFiles) {
+function scssCombine(content, baseDir, paths, parsedFiles, options) {
 
     // Content is a Buffer, convert to string.
     if (typeof content != "string") {
@@ -78,7 +78,7 @@ function scssCombine(content, baseDir, paths, parsedFiles) {
 
     if (regex.test(content)) {
         return content.replace(regex, function(m, capture) {
-            return getReplace(capture, baseDir, paths, parsedFiles);
+            return getReplace(capture, baseDir, paths, parsedFiles, options);
         });
     }
 
@@ -92,7 +92,7 @@ function scssCombine(content, baseDir, paths, parsedFiles) {
             regex = /['"]([^'"]*)['"]/g;
             var captures = m.match(regex);
             for (var x in captures) {
-                text += getReplace(captures[x].replace(/['"]+/g, ''), baseDir, paths, parsedFiles) + "\n";
+                text += getReplace(captures[x].replace(/['"]+/g, ''), baseDir, paths, parsedFiles, options) + "\n";
             }
 
             return text;
@@ -103,9 +103,11 @@ function scssCombine(content, baseDir, paths, parsedFiles) {
 }
 
 
-module.exports = function(paths, options) {
+module.exports = function(options, paths) {
     if (!options) {
-        options = {};
+        options = {
+            allowDuplicates: false
+        };
     }
 	
 	return throught.obj(function(file, enc, cb) {
@@ -120,7 +122,13 @@ module.exports = function(paths, options) {
 		}
 
         parsedFiles.push(file);
-        file.contents = bufferFrom(scssCombine(file.contents, path.dirname(file.path), paths, parsedFiles));
+        file.contents = bufferFrom(scssCombine(
+            file.contents,
+            path.dirname(file.path),
+            paths,
+            parsedFiles,
+            options
+        ));
 
 		setImmediate(cb, null, file);
 	});
