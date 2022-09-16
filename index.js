@@ -1,10 +1,10 @@
 'use strict';
 
-import { existsSync, readFileSync } from 'fs';
-import { parse as _parse, resolve, dirname } from 'path';
-import { PluginError } from 'plugin-error';
-import { obj } from 'through2';
-import bufferFrom from 'buffer-from';
+var fs			= require('fs');
+var path		= require('path');
+var gutil		= require('gulp-util');
+var throught	= require('through2');
+var bufferFrom  = require('buffer-from');
 
 var parsedFiles = [];
 
@@ -18,19 +18,19 @@ var parsedFiles = [];
  * @return {string}             Partially combined scss.
  */
 function getReplace(capture, baseDir, paths, parsedFiles, options) {
-    var parse   = _parse(resolve(baseDir, capture + '.scss'));
+    var parse   = path.parse(path.resolve(baseDir, capture + '.scss'));
     var file    = parse.dir + '/' + parse.name;
 
 
-    if (!existsSync(file + '.scss')) {
+    if (!fs.existsSync(file + '.scss')) {
         // File not found, might be a partial file.
         file    = parse.dir + '/_' + parse.name;
     }
 
     // If file still not found, try to find the file in the alternative paths.
     var x = 0;
-    while (!existsSync(file + '.scss') && paths.length > x) {
-        parse   = _parse(resolve(paths[x], capture + '.scss'));
+    while (!fs.existsSync(file + '.scss') && paths.length > x) {
+        parse   = path.parse(path.resolve(paths[x], capture + '.scss'));
         file    = parse.dir + '/' + parse.name;
 
         x++;
@@ -38,7 +38,7 @@ function getReplace(capture, baseDir, paths, parsedFiles, options) {
 
     file    = file + '.scss';
 
-    if (!existsSync(file)) {
+    if (!fs.existsSync(file)) {
         // File not found. Leave the import there.
         console.error('File "' + capture + '" not found');
         return '@import "' + capture + '";';
@@ -51,7 +51,7 @@ function getReplace(capture, baseDir, paths, parsedFiles, options) {
     }
 
     parsedFiles.push(file);
-    var text = readFileSync(file);
+    var text = fs.readFileSync(file);
 
     // Recursive call.
     return scssCombine(text, parse.dir, paths, parsedFiles, options);
@@ -103,28 +103,28 @@ function scssCombine(content, baseDir, paths, parsedFiles, options) {
 }
 
 
-export default function(options, paths) {
+module.exports = function(options, paths) {
     if (!options) {
         options = {
             allowDuplicates: false
         };
     }
 	
-	return obj(function(file, enc, cb) {
+	return throught.obj(function(file, enc, cb) {
 		if (file.isNull()) {
 			cb(null, file);
 			return;
 		}
 
 		if (file.isStream()) {
-			cb(new PluginError('gulp-scss-combine', 'Streaming not supported'));
+			cb(new gutil.PluginError('gulp-scss-combine', 'Streaming not supported'));
 			return;
 		}
 
         parsedFiles.push(file);
         file.contents = bufferFrom(scssCombine(
             file.contents,
-            dirname(file.path),
+            path.dirname(file.path),
             paths,
             parsedFiles,
             options
