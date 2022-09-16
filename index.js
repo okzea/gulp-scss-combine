@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync } from 'fs';
 import { parse as _parse, resolve, dirname } from 'path';
-import { PluginError } from 'gulp-util';
+import { PluginError } from 'plugin-error';
 import { obj } from 'through2';
 import bufferFrom from 'buffer-from';
 
