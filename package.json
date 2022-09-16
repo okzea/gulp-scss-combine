@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/DeathMark/gulp-scss-combine#readme",
   "dependencies": {
-    "gulp-util": "^3.0.8",
-    "through2": "^2.0.3"
+    "plugin-error": "^2.0.0",
+    "through2": "^4.0.2"
   }
 }

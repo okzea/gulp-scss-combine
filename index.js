@@ -2,7 +2,7 @@
 
 var fs			= require('fs');
 var path		= require('path');
-var gutil		= require('gulp-util');
+var gutil		= require('plugin-error');
 var throught	= require('through2');
 var bufferFrom  = require('buffer-from');
 
